@@ -343,7 +343,7 @@
 
     /* === 天氣卡片樣式 === */
     .weather-card {
-      min-width: 220px;
+      min-width: 260px;
       padding: 12px 14px;
       border-radius: 14px;
       background: linear-gradient(135deg, #4f46e5, #22c1c3);
@@ -351,7 +351,7 @@
       box-shadow: 0 12px 30px rgba(15, 23, 42, 0.25);
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
     }
 
     .weather-title {
@@ -389,67 +389,70 @@
       opacity: 0.9;
     }
 
-    /* === 匯率彈窗 === */
-    .exchange-row {
+    /* 匯率小對話框（放在天氣卡片下面） */
+    .fx-inline-card {
+      margin-top: 8px;
+      background: rgba(15, 23, 42, 0.18);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 12px;
       display: flex;
       flex-direction: column;
       gap: 6px;
-      margin-bottom: 10px;
-      font-size: 13px;
     }
 
-    .exchange-row label {
+    .fx-inline-title {
       font-weight: 600;
+      font-size: 12px;
     }
 
-    .exchange-inputs {
+    .fx-inline-row {
       display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
+      flex-direction: column;
+      gap: 4px;
     }
 
-    .exchange-inputs input {
-      width: 140px;
-      padding: 6px 8px;
-      border-radius: 8px;
-      border: 1px solid #d1d5db;
-      font-size: 14px;
-    }
-
-    .exchange-note {
+    .fx-inline-row label {
       font-size: 11px;
-      color: #6b7280;
+      opacity: 0.9;
     }
 
-    .keypad {
-      margin-top: 8px;
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+    .fx-inline-input {
+      display: flex;
+      align-items: center;
       gap: 6px;
     }
 
-    .keypad button {
-      border-radius: 10px;
-      padding: 8px 0;
-      font-size: 15px;
-      background: #f3f4f6;
-    }
-
-    .keypad button.primary {
-      background: #4f46e5;
+    .fx-inline-input input {
+      flex: 1;
+      min-width: 0;
+      border-radius: 8px;
+      border: 1px solid rgba(249, 250, 251, 0.8);
+      padding: 4px 6px;
+      font-size: 12px;
+      background: rgba(15, 23, 42, 0.1);
       color: #fff;
     }
 
-    .keypad button.danger {
-      background: #fee2e2;
-      color: #b91c1c;
+    .fx-inline-input input::placeholder {
+      color: rgba(229, 231, 235, 0.8);
     }
 
-    .exchange-active-label {
+    .fx-inline-result {
       font-size: 11px;
-      color: #4b5563;
-      margin-bottom: 4px;
+      opacity: 0.95;
+    }
+
+    .fx-inline-rate {
+      font-size: 11px;
+      opacity: 0.85;
+    }
+
+    @media (max-width: 480px) {
+      .fx-inline-input {
+        flex-direction: column;
+        align-items: flex-start;
+      }
     }
   </style>
 </head>
@@ -466,7 +469,7 @@
         </div>
       </div>
 
-      <!-- 沖繩即時天氣卡片 -->
+      <!-- 右側：天氣卡片 + 匯率對話框 -->
       <div id="weatherCard" class="weather-card">
         <div class="weather-title">沖繩 · 即時天氣（那霸附近）</div>
         <div class="weather-main">
@@ -478,6 +481,28 @@
           <span id="weatherUpdated">更新時間 --:--</span>
         </div>
         <div id="weatherError" class="weather-error" style="display:none;"></div>
+
+        <!-- 日幣匯率小對話框（固定匯率 0.21） -->
+        <div class="fx-inline-card">
+          <div class="fx-inline-title">日幣 / 台幣換算</div>
+          <div class="fx-inline-rate">匯率固定：1 日幣 (JPY) ≒ 0.21 台幣 (TWD)</div>
+
+          <div class="fx-inline-row">
+            <label for="jpyInlineInput">輸入日幣（JPY）</label>
+            <div class="fx-inline-input">
+              <input id="jpyInlineInput" type="text" inputmode="decimal" placeholder="例如 10000" />
+              <span class="fx-inline-result" id="jpyInlineResult">≈ — 台幣</span>
+            </div>
+          </div>
+
+          <div class="fx-inline-row">
+            <label for="twdInlineInput">輸入台幣（TWD）</label>
+            <div class="fx-inline-input">
+              <input id="twdInlineInput" type="text" inputmode="decimal" placeholder="例如 3000" />
+              <span class="fx-inline-result" id="twdInlineResult">≈ — 日幣</span>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -504,7 +529,6 @@
           <button class="primary" id="addItemBtn">＋ 新增行程</button>
           <button id="shareBtn">分享行程碼</button>
           <button id="importBtn">載入家人的行程碼</button>
-          <button id="fxBtn">日幣匯率換算</button>
           <button id="resetBtn">重置為預設行程</button>
         </div>
 
@@ -593,65 +617,6 @@
       <div class="modal-buttons">
         <button class="primary" id="savePlaceBtn">儲存</button>
         <button id="cancelPlaceBtn">取消</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 匯率換算彈窗 -->
-  <div id="exchangeModalOverlay" class="modal-overlay">
-    <div id="exchangeModal" class="modal">
-      <h2>日幣 / 台幣匯率換算</h2>
-      <div id="exchangeRateLine" class="exchange-note" style="margin-bottom:8px;">
-        即時匯率載入中…
-      </div>
-
-      <div class="exchange-active-label" id="exchangeActiveLabel">
-        目前鍵盤輸入：日幣（JPY）
-      </div>
-
-      <div class="exchange-row">
-        <label for="jpyInput">輸入日幣（JPY）</label>
-        <div class="exchange-inputs">
-          <input id="jpyInput" type="text" inputmode="decimal" placeholder="例如 10000" />
-          <span>≈</span>
-          <span id="jpyToTwdResult">— 台幣</span>
-        </div>
-      </div>
-
-      <div class="exchange-row">
-        <label for="twdInput">輸入台幣（TWD）</label>
-        <div class="exchange-inputs">
-          <input id="twdInput" type="text" inputmode="decimal" placeholder="例如 3000" />
-          <span>≈</span>
-          <span id="twdToJpyResult">— 日幣</span>
-        </div>
-      </div>
-
-      <div class="exchange-note">
-        點選上方任一輸入框切換「鍵盤輸入」目標，下面數字鍵盤會輸入到該欄位。
-      </div>
-
-      <div class="keypad" id="exchangeKeypad">
-        <button data-key="7">7</button>
-        <button data-key="8">8</button>
-        <button data-key="9">9</button>
-        <button class="danger" data-key="C">清除</button>
-
-        <button data-key="4">4</button>
-        <button data-key="5">5</button>
-        <button data-key="6">6</button>
-        <button data-key="←">←</button>
-
-        <button data-key="1">1</button>
-        <button data-key="2">2</button>
-        <button data-key="3">3</button>
-        <button data-key=".">.</button>
-
-        <button class="primary" style="grid-column: span 4;" data-key="OK">關閉鍵盤</button>
-      </div>
-
-      <div class="modal-buttons" style="margin-top:14px;">
-        <button id="closeExchangeModal">關閉</button>
       </div>
     </div>
   </div>
@@ -1251,20 +1216,12 @@
         });
     }
 
-    // === 匯率換算 ===
-    const fxBtn = document.getElementById("fxBtn");
-    const exchangeOverlay = document.getElementById("exchangeModalOverlay");
-    const closeExchangeModalBtn = document.getElementById("closeExchangeModal");
-    const exchangeRateLine = document.getElementById("exchangeRateLine");
-    const jpyInput = document.getElementById("jpyInput");
-    const twdInput = document.getElementById("twdInput");
-    const jpyToTwdResult = document.getElementById("jpyToTwdResult");
-    const twdToJpyResult = document.getElementById("twdToJpyResult");
-    const exchangeActiveLabel = document.getElementById("exchangeActiveLabel");
-    const exchangeKeypad = document.getElementById("exchangeKeypad");
-
-    let fxRate = null; // TWD per 1 JPY
-    let fxActiveField = "jpy"; // "jpy" or "twd"
+    // === 匯率換算（固定 1 JPY = 0.21 TWD） ===
+    const FX_RATE = 0.21;
+    const jpyInlineInput = document.getElementById("jpyInlineInput");
+    const twdInlineInput = document.getElementById("twdInlineInput");
+    const jpyInlineResult = document.getElementById("jpyInlineResult");
+    const twdInlineResult = document.getElementById("twdInlineResult");
 
     function formatNumber(num, digits = 0) {
       if (isNaN(num)) return "—";
@@ -1274,141 +1231,25 @@
       });
     }
 
-    function updateExchangeRateLine() {
-      if (fxRate) {
-        exchangeRateLine.textContent = `即時匯率：1 日幣 (JPY) ≒ ${fxRate.toFixed(4)} 台幣 (TWD)`;
+    jpyInlineInput.addEventListener("input", () => {
+      const v = parseFloat(jpyInlineInput.value.replace(/,/g, ""));
+      if (isNaN(v)) {
+        jpyInlineResult.textContent = "≈ — 台幣";
       } else {
-        exchangeRateLine.textContent = "即時匯率載入中…（若失敗將使用預設 0.22 試算）";
+        const t = v * FX_RATE;
+        jpyInlineResult.textContent = `≈ ${formatNumber(t, 0)} 台幣`;
       }
-    }
-
-    function fetchFxRate() {
-      // 使用 exchangerate.host 免費 API，base=JPY -> TWD
-      const url = "https://api.exchangerate.host/latest?base=JPY&symbols=TWD";
-
-      fetch(url)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data && data.rates && data.rates.TWD) {
-            fxRate = data.rates.TWD;
-          } else {
-            throw new Error("no TWD rate");
-          }
-          updateExchangeRateLine();
-          recalcFxFromActive();
-        })
-        .catch((err) => {
-          console.warn("fx fetch error", err);
-          if (!fxRate) {
-            fxRate = 0.22; // fallback
-          }
-          exchangeRateLine.textContent =
-            `暫時無法取得最新匯率，先以 1 JPY ≒ ${fxRate.toFixed(4)} TWD 試算。`;
-          recalcFxFromActive();
-        });
-    }
-
-    function recalcFxFromActive() {
-      if (!fxRate) return;
-      const jpyVal = parseFloat(jpyInput.value.replace(/,/g, ""));
-      const twdVal = parseFloat(twdInput.value.replace(/,/g, ""));
-
-      if (fxActiveField === "jpy") {
-        if (!isNaN(jpyVal)) {
-          const t = jpyVal * fxRate;
-          jpyToTwdResult.textContent = `${formatNumber(t, 0)} 台幣`;
-        } else {
-          jpyToTwdResult.textContent = "— 台幣";
-        }
-        if (!isNaN(twdVal)) {
-          const j = twdVal / fxRate;
-          twdToJpyResult.textContent = `${formatNumber(j, 0)} 日幣`;
-        } else {
-          twdToJpyResult.textContent = "— 日幣";
-        }
-      } else {
-        if (!isNaN(twdVal)) {
-          const j = twdVal / fxRate;
-          twdToJpyResult.textContent = `${formatNumber(j, 0)} 日幣`;
-        } else {
-          twdToJpyResult.textContent = "— 日幣";
-        }
-        if (!isNaN(jpyVal)) {
-          const t = jpyVal * fxRate;
-          jpyToTwdResult.textContent = `${formatNumber(t, 0)} 台幣`;
-        } else {
-          jpyToTwdResult.textContent = "— 台幣";
-        }
-      }
-    }
-
-    function setActiveField(field) {
-      fxActiveField = field;
-      if (field === "jpy") {
-        exchangeActiveLabel.textContent = "目前鍵盤輸入：日幣（JPY）";
-      } else {
-        exchangeActiveLabel.textContent = "目前鍵盤輸入：台幣（TWD）";
-      }
-    }
-
-    jpyInput.addEventListener("focus", () => setActiveField("jpy"));
-    twdInput.addEventListener("focus", () => setActiveField("twd"));
-
-    jpyInput.addEventListener("input", () => {
-      setActiveField("jpy");
-      recalcFxFromActive();
     });
 
-    twdInput.addEventListener("input", () => {
-      setActiveField("twd");
-      recalcFxFromActive();
-    });
-
-    exchangeKeypad.addEventListener("click", (e) => {
-      const key = e.target.getAttribute("data-key");
-      if (!key) return;
-
-      if (key === "OK") {
-        // 什麼都不做，只是讓使用者按著玩 XD
-        return;
-      }
-
-      const inputEl = fxActiveField === "jpy" ? jpyInput : twdInput;
-      let val = inputEl.value;
-
-      if (key === "C") {
-        val = "";
-      } else if (key === "←") {
-        val = val.slice(0, -1);
-      } else if (key === ".") {
-        if (!val.includes(".")) val += ".";
+    twdInlineInput.addEventListener("input", () => {
+      const v = parseFloat(twdInlineInput.value.replace(/,/g, ""));
+      if (isNaN(v)) {
+        twdInlineResult.textContent = "≈ — 日幣";
       } else {
-        val += key;
+        const j = v / FX_RATE;
+        twdInlineResult.textContent = `≈ ${formatNumber(j, 0)} 日幣`;
       }
-
-      inputEl.value = val;
-      recalcFxFromActive();
     });
-
-    function openExchangeModal() {
-      updateExchangeRateLine();
-      setActiveField("jpy");
-      exchangeOverlay.style.display = "block";
-      jpyInput.focus();
-      if (!fxRate) {
-        fetchFxRate();
-      }
-    }
-
-    function closeExchangeModal() {
-      exchangeOverlay.style.display = "none";
-    }
-
-    fxBtn.onclick = openExchangeModal;
-    closeExchangeModalBtn.onclick = closeExchangeModal;
-    exchangeOverlay.onclick = (e) => {
-      if (e.target === exchangeOverlay) closeExchangeModal();
-    };
 
     // 初始渲染 + 立刻存一次（把舊格式或空資料覆蓋成新格式）
     renderDayList();
