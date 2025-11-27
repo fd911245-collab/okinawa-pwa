@@ -469,7 +469,7 @@
 
   <script>
     const STORAGE_KEY = "okinawa_2025_itinerary_v1";
-    const APP_VERSION = 2; // 每次資料格式有重大變動就 +1
+    const APP_VERSION = 2; // 格式版本（目前維持 2，不會覆蓋已經有內容的新版資料）
 
     // 預設行程
     const defaultItinerary = {
@@ -539,13 +539,22 @@
           const parsed = JSON.parse(raw);
           // 新格式：{ version: number, data: {...} }
           if (parsed && parsed.version === APP_VERSION && parsed.data) {
-            return parsed.data;
+            // 如果 data 不是物件、是陣列、或是空物件 → 視為壞掉／空資料，改用預設
+            if (
+              typeof parsed.data !== "object" ||
+              Array.isArray(parsed.data) ||
+              Object.keys(parsed.data).length === 0
+            ) {
+              console.warn("Detected empty/invalid itinerary in localStorage, fallback to default.");
+            } else {
+              return parsed.data;
+            }
           }
         }
       } catch (e) {
         console.warn("parse localStorage fail", e);
       }
-      // 如果沒有資料或版本不符 → 使用預設行程
+      // 如果沒有資料或版本不符或為空 → 使用預設行程
       return JSON.parse(JSON.stringify(defaultItinerary));
     }
 
@@ -704,7 +713,9 @@
         delBtn.className = "danger";
         delBtn.textContent = "刪除";
         delBtn.onclick = () => {
-          if (confirm(`確定要刪除這筆行程嗎？\n\n${item.time} ${item.title}`)) {
+          if (confirm(`確定要刪除這筆行程嗎？
+
+${item.time} ${item.title}`)) {
             day.items.splice(index, 1);
             saveItinerary();
             renderSchedule();
@@ -739,7 +750,8 @@
     };
 
     document.getElementById("resetBtn").onclick = () => {
-      if (confirm("確定要重置為預設行程嗎？\n目前所有修改都會被覆蓋。")) {
+      if (confirm("確定要重置為預設行程嗎？
+目前所有修改都會被覆蓋。")) {
         itinerary = JSON.parse(JSON.stringify(defaultItinerary));
         currentDayKey = Object.keys(itinerary)[0];
         saveItinerary();
@@ -939,7 +951,7 @@
       if (e.target === placeOverlay) closePlaceModal();
     };
 
-    // 初始渲染 + 立刻存一次（把舊格式覆蓋成新格式）
+    // 初始渲染 + 立刻存一次（把舊格式或空資料覆蓋成新格式）
     renderDayList();
     renderSchedule();
     saveItinerary();
