@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>沖繩行程規劃 2025/12/06–12/10</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- PWA：顏色 & manifest -->
+  <meta name="theme-color" content="#4f46e5" />
+  <link rel="manifest" href="manifest.webmanifest" />
+
+  <!-- iOS 加到主畫面用 -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="沖繩行程" />
+  <link rel="apple-touch-icon" href="icon/icon-192.png" />
+
+  <!-- LZString（壓縮 / 解壓縮）-->
+  <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC",
+        "PingFang TC", "Microsoft JhengHei", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: #f3f4f6;
+      color: #111827;
+    }
+
+    .app {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      gap: 8px;
+    }
+
+    header h1 {
+      font-size: 20px;
+      margin: 0;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 12px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    }
+
+    .day-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .day-item {
+      border-radius: 12px;
+      padding: 10px 12px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    }
+
+    .day-item:hover {
+      background: #f9fafb;
+      transform: translateY(-1px);
+    }
+
+    .day-item.active {
+      background: #eef2ff;
+      border-color: #4f46e5;
+    }
+
+    .day-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .day-subtitle {
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .badge {
+      background: #fef3c7;
+      color: #92400e;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 11px;
+      margin-left: 4px;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border-radius: 999px;
+      border: none;
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #e5e7eb;
+      color: #111827;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.1s;
+    }
+
+    button.primary {
+      background: #4f46e5;
+      color: #ffffff;
+    }
+
+    button.danger {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    .schedule-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .schedule-header h2 {
+      font-size: 18px;
+      margin: 0;
+    }
+
+    .schedule-header span {
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+
+    th, td {
+      font-size: 13px;
+      padding: 6px 8px;
+      border-bottom: 1px solid #e5e7eb;
+      vertical-align: top;
+    }
+
+    th {
+      text-align: left;
+      color: #6b7280;
+      background: #f9fafb;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .time-input {
+      width: 70px;
+    }
+
+    .text-input {
+      width: 100%;
+    }
+
+    input[type="text"],
+    input[type="time"],
+    textarea {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      font-size: 12px;
+      padding: 4px 6px;
+      outline: none;
+      resize: vertical;
+    }
+
+    input[type="text"]:focus,
+    input[type="time"]:focus,
+    textarea:focus {
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.2);
+    }
+
+    .map-link {
+      font-size: 12px;
+      color: #2563eb;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .map-link:hover {
+      text-decoration: underline;
+    }
+
+    .map-panel {
+      margin-top: 10px;
+      border-radius: 14px;
+      border: 1px solid #e5e7eb;
+      padding: 8px;
+      background: #f9fafb;
+    }
+
+    .map-panel h3 {
+      margin: 0 0 6px 0;
+      font-size: 13px;
+      color: #111827;
+    }
+
+    .map-frame {
+      width: 100%;
+      height: 260px;
+      border: 0;
+      border-radius: 10px;
+    }
+
+    /* === 共用 Modal 動畫 === */
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -40%);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+      }
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(2px);
+      z-index: 1000;
+    }
+
+    .modal {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: min(90%, 480px);
+      transform: translate(-50%, -50%);
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+      animation: fadeUp 0.25s ease;
+    }
+
+    .modal h2 {
+      margin: 0 0 12px 0;
+      font-size: 18px;
+      text-align: center;
+    }
+
+    .modal textarea {
+      width: 100%;
+      height: 150px;
+      resize: vertical;
+      padding: 10px;
+      font-size: 13px;
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      background: #f9fafb;
+    }
+
+    .modal-buttons {
+      margin-top: 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .modal-buttons button {
+      flex: 1;
+      padding: 10px;
+      font-size: 14px;
+    }
+
+    /* 備註彈窗文字區塊高一點 */
+    #noteModalTextarea {
+      height: 220px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>沖繩行程規劃 · 2025/12/06–12/10</h1>
+        <div class="subtitle">
+          可自行新增 / 刪除 / 修改行程，會自動儲存在這台裝置（localStorage）。
+        </div>
+      </div>
+      <div class="subtitle">
+        小提醒：點「開啟地圖」會開啟 Google Maps，並更新下方地圖預覽。<br>
+        分享行程碼給家人，他們貼上「載入家人的行程碼」就能看到同一份行程。
+      </div>
+    </header>
+
+    <div class="layout">
+      <!-- 左側：日期列表 -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="font-size:14px;font-weight:600;">日期 / Day</span>
+          <span class="badge">預先幫你放好粗略行程</span>
+        </div>
+        <div class="day-list" id="dayList"></div>
+      </div>
+
+      <!-- 右側：行程明細 + 地圖 -->
+      <div class="card">
+        <div class="schedule-header">
+          <div>
+            <h2 id="currentDayTitle">行程明細</h2>
+            <span id="currentDaySubtitle"></span>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <button class="primary" id="addItemBtn">＋ 新增行程</button>
+          <button id="shareBtn">分享行程碼</button>
+          <button id="importBtn">載入家人的行程碼</button>
+          <button id="resetBtn">重置為預設行程</button>
+        </div>
+
+        <div style="max-height:50vh;overflow:auto;border-radius:12px;border:1px solid #e5e7eb;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:70px;">時間</th>
+                <th style="width:160px;">標題</th>
+                <th style="width:180px;">地點 / 地圖</th>
+                <th>備註</th>
+                <th style="width:60px;">操作</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+          </table>
+        </div>
+
+        <div class="map-panel">
+          <h3>地圖預覽</h3>
+          <iframe
+            id="mapFrame"
+            class="map-frame"
+            src="https://www.google.com/maps?q=%E6%B2%96%E7%B8%84&output=embed"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 分享行程碼彈窗 -->
+  <div id="shareModalOverlay" class="modal-overlay">
+    <div id="shareModal" class="modal">
+      <h2>分享行程碼</h2>
+      <textarea id="shareCodeArea" readonly></textarea>
+      <div class="modal-buttons">
+        <button class="primary" id="copyShareCode">複製</button>
+        <button id="closeShareModal">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 載入行程碼彈窗 -->
+  <div id="importModalOverlay" class="modal-overlay">
+    <div id="importModal" class="modal">
+      <h2>貼上家人的行程碼</h2>
+      <textarea id="importCodeArea" placeholder="請貼上家人提供的行程碼"></textarea>
+      <div class="modal-buttons">
+        <button class="primary" id="applyImportCode">載入這份行程</button>
+        <button id="closeImportModal">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 備註放大編輯彈窗 -->
+  <div id="noteModalOverlay" class="modal-overlay">
+    <div id="noteModal" class="modal">
+      <h2>編輯備註</h2>
+      <textarea id="noteModalTextarea" placeholder="在這裡輸入詳細備註"></textarea>
+      <div class="modal-buttons">
+        <button class="primary" id="saveNoteBtn">儲存</button>
+        <button id="cancelNoteBtn">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 標題編輯彈窗 -->
+  <div id="titleModalOverlay" class="modal-overlay">
+    <div id="titleModal" class="modal">
+      <h2>編輯標題</h2>
+      <textarea id="titleModalTextarea" placeholder="輸入行程標題"></textarea>
+      <div class="modal-buttons">
+        <button class="primary" id="saveTitleBtn">儲存</button>
+        <button id="cancelTitleBtn">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 地點編輯彈窗 -->
+  <div id="placeModalOverlay" class="modal-overlay">
+    <div id="placeModal" class="modal">
+      <h2>編輯地點 / Google Map 連結</h2>
+      <textarea id="placeModalTextarea" placeholder="可輸入地址、Google Map 連結、地點說明"></textarea>
+      <div class="modal-buttons">
+        <button class="primary" id="savePlaceBtn">儲存</button>
+        <button id="cancelPlaceBtn">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "okinawa_2025_itinerary_v1";
+    const APP_VERSION = 2; // 每次資料格式有重大變動就 +1
+
+    // 預設行程
+    const defaultItinerary = {
+      "2025-12-06": {
+        label: "Day 1 · 抵達那霸 & 國際通",
+        tags: ["CI122", "國際通", "暖暮拉麵"],
+        items: [
+          { time: "16:50", title: "桃園機場出發 · CI122", place: "桃園國際機場 TPE", mapQuery: "桃園國際機場", note: "" },
+          { time: "19:20", title: "抵達那霸機場", place: "那霸機場 OKA", mapQuery: "那覇空港", note: "入境＋領行李" },
+          { time: "20:00", title: "單軌電車前往民宿", place: "アーバンテラスナハ Urban Terrace Naha", mapQuery: "アーバンテラスナハ 2 Chome−7−14 Wakasa, Naha", note: "從那霸機場搭單軌到旭橋 / 県庁前，再步行" },
+          { time: "20:30", title: "晚餐 & 散步", place: "國際通 · 暖暮拉麵", mapQuery: "暖暮ラーメン 国際通り", note: "吃完順便買隔天早餐麵包" }
+        ]
+      },
+      "2025-12-07": {
+        label: "Day 2 · 波上宮 · 玉泉洞 · 瀨長島 · 燒肉",
+        tags: ["波上宮", "玉泉洞", "瀨長島"],
+        items: [
+          { time: "08:00", title: "哥哥狄全去取車", place: "OTS 租車（那霸附近據點）", mapQuery: "OTSレンタカー 那覇 空港", note: "" },
+          { time: "08:00", title: "其他人吃早餐 & 整理行李", place: "民宿", mapQuery: "アーバンテラスナハ", note: "準備嬰兒用品、推車" },
+          { time: "09:30", title: "參拜波上宮", place: "波上宮", mapQuery: "波上宮", note: "可步行或搭計程車前往" },
+          { time: "12:00", title: "午餐", place: "波上宮周邊 / 國際通", mapQuery: "那覇 国際通り ランチ", note: "" },
+          { time: "13:30", title: "玉泉洞（琉球王國村）", place: "おきなわワールド 玉泉洞", mapQuery: "おきなわワールド 玉泉洞", note: "洞窟+園區約 1.5–2 小時" },
+          { time: "16:00", title: "瀨長島 Umikaji Terrace", place: "瀨長島ウミカジテラス", mapQuery: "瀬長島ウミカジテラス", note: "海景咖啡、散步拍照" },
+          { time: "19:00", title: "晚餐 燒肉 Buchi", place: "焼肉 BuCHi 久茂地店", mapQuery: "焼肉 BuCHi 久茂地", note: "建議事先預約" }
+        ]
+      },
+      "2025-12-08": {
+        label: "Day 3 · PARCO · 永旺 · 萬座毛 · BEB5 · 美國村",
+        tags: ["購物", "萬座毛", "美國村"],
+        items: [
+          { time: "09:00", title: "出發前往 PARCO CITY", place: "サンエー浦添西海岸 PARCO CITY", mapQuery: "サンエー浦添西海岸 PARCO CITY", note: "" },
+          { time: "10:00", title: "Akachan Honpo 阿卡醬", place: "アカチャンホンポ PARCO CITY", mapQuery: "アカチャンホンポ 浦添西海岸パルコシティ店", note: "買麵包超人相關、育兒用品" },
+          { time: "12:00", title: "永旺夢樂城逛街＋午餐", place: "Aeon Mall / 百貨美食街", mapQuery: "パルコシティ フードコート", note: "1 樓護照可兌換優惠券" },
+          { time: "14:30", title: "萬座毛散步", place: "萬座毛", mapQuery: "万座毛", note: "海景步道、停留約 40 分鐘" },
+          { time: "15:30", title: "入住 星野 BEB5", place: "星野リゾート BEB5 沖縄瀬良垣", mapQuery: "星野リゾート BEB5 沖縄瀬良垣", note: "Check-in、休息、讓寶寶洗澡" },
+          { time: "18:00", title: "前往美國村", place: "美浜アメリカンビレッジ", mapQuery: "美浜アメリカンビレッジ", note: "逛街、拍照" },
+          { time: "19:00", title: "晚餐 迴轉壽司市場", place: "グルメ回転寿司市場 美浜店", mapQuery: "グルメ回転寿司市場 美浜店", note: "可能需要排隊，建議早點去" }
+        ]
+      },
+      "2025-12-09": {
+        label: "Day 4 · 美麗海水族館",
+        tags: ["美麗海水族館"],
+        items: [
+          { time: "09:00", title: "出發前往美麗海水族館", place: "沖縄美ら海水族館", mapQuery: "沖縄美ら海水族館", note: "車程較久，寶寶可途中小睡" },
+          { time: "10:30", title: "逛水族館 & 海洋博公園", place: "海洋博公園", mapQuery: "海洋博公園", note: "鯨鯊大水槽必看" },
+          { time: "13:00", title: "午餐（附近餐廳）", place: "本部町 餐廳", mapQuery: "本部町 ランチ", note: "可找沖繩麵或海鮮" },
+          { time: "17:30", title: "晚餐 阿古豬火鍋", place: "あぐー豚 火鍋（店家自選）", mapQuery: "あぐー豚 しゃぶしゃぶ", note: "建議事先預約" }
+        ]
+      },
+      "2025-12-10": {
+        label: "Day 5 · 古宇利島 · 蝦蝦飯 · 還車 · 回程",
+        tags: ["古宇利島", "蝦蝦飯", "CI123"],
+        items: [
+          { time: "09:00", title: "退房 & 出發前往古宇利島", place: "古宇利大橋", mapQuery: "古宇利大橋", note: "拍照、看海景" },
+          { time: "11:30", title: "蝦蝦飯午餐", place: "KOURI SHRIMP", mapQuery: "KOURI SHRIMP", note: "戶外座位為主，視天氣調整" },
+          { time: "14:30", title: "回那霸 / 國際通最後採買", place: "國際通", mapQuery: "国際通り 那覇", note: "" },
+          { time: "17:00", title: "OTS 還車", place: "OTS 租車 還車據點", mapQuery: "OTSレンタカー 那覇 空港", note: "還車後搭接駁車前往機場" },
+          { time: "20:20", title: "那霸 → 桃園 · CI123", place: "那霸機場 → 桃園機場", mapQuery: "那覇空港", note: "預計 21:00 抵達桃園" }
+        ]
+      }
+    };
+
+    function loadItinerary() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          // 新格式：{ version: number, data: {...} }
+          if (parsed && parsed.version === APP_VERSION && parsed.data) {
+            return parsed.data;
+          }
+        }
+      } catch (e) {
+        console.warn("parse localStorage fail", e);
+      }
+      // 如果沒有資料或版本不符 → 使用預設行程
+      return JSON.parse(JSON.stringify(defaultItinerary));
+    }
+
+    function saveItinerary() {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          version: APP_VERSION,
+          data: itinerary,
+        })
+      );
+    }
+
+    let itinerary = loadItinerary();
+    let currentDayKey = Object.keys(itinerary)[0];
+
+    const dayListEl = document.getElementById("dayList");
+    const scheduleBodyEl = document.getElementById("scheduleBody");
+    const currentDayTitleEl = document.getElementById("currentDayTitle");
+    const currentDaySubtitleEl = document.getElementById("currentDaySubtitle");
+
+    function renderDayList() {
+      dayListEl.innerHTML = "";
+      Object.entries(itinerary).forEach(([date, day]) => {
+        const div = document.createElement("div");
+        div.className = "day-item" + (date === currentDayKey ? " active" : "");
+        div.onclick = () => {
+          currentDayKey = date;
+          renderDayList();
+          renderSchedule();
+        };
+
+        const title = document.createElement("div");
+        title.className = "day-title";
+        title.textContent = `${date} ${day.label}`;
+        div.appendChild(title);
+
+        const subtitle = document.createElement("div");
+        subtitle.className = "day-subtitle";
+        subtitle.textContent = (day.tags || []).map(t => `#${t}`).join("  ");
+        div.appendChild(subtitle);
+
+        dayListEl.appendChild(div);
+      });
+    }
+
+    function googleMapsUrl(query) {
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+    }
+
+    function updateMapPreview(query) {
+      const frame = document.getElementById("mapFrame");
+      if (!frame || !query) return;
+      frame.src = `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
+    }
+
+    // 備註彈窗需要知道目前編輯哪一筆
+    let editingNoteInfo = null;
+    // 標題 / 地點 彈窗
+    let editingTitleInfo = null;
+    let editingPlaceInfo = null;
+
+    function renderSchedule() {
+      const day = itinerary[currentDayKey];
+      currentDayTitleEl.textContent = day.label || "行程明細";
+      currentDaySubtitleEl.textContent = currentDayKey;
+
+      scheduleBodyEl.innerHTML = "";
+      day.items.forEach((item, index) => {
+        const tr = document.createElement("tr");
+
+        // 時間
+        const tdTime = document.createElement("td");
+        const inputTime = document.createElement("input");
+        inputTime.type = "time";
+        inputTime.className = "time-input";
+        inputTime.value = item.time || "";
+        inputTime.onchange = (e) => {
+          item.time = e.target.value;
+          saveItinerary();
+        };
+        tdTime.appendChild(inputTime);
+        tr.appendChild(tdTime);
+
+        // 標題：改成點擊開大彈窗
+        const tdTitle = document.createElement("td");
+        const titleBox = document.createElement("div");
+        titleBox.textContent = item.title || "(點擊編輯標題)";
+        titleBox.style.padding = "6px";
+        titleBox.style.background = "#f3f4f6";
+        titleBox.style.borderRadius = "8px";
+        titleBox.style.cursor = "pointer";
+        titleBox.onclick = () => openTitleModal(currentDayKey, index);
+        tdTitle.appendChild(titleBox);
+        tr.appendChild(tdTitle);
+
+        // 地點：改成點擊開大彈窗 + 下方地圖按鈕
+        const tdPlace = document.createElement("td");
+        const placeBox = document.createElement("div");
+        placeBox.textContent = item.place || "(點擊編輯地點)";
+        placeBox.style.padding = "6px";
+        placeBox.style.background = "#f3f4f6";
+        placeBox.style.borderRadius = "8px";
+        placeBox.style.cursor = "pointer";
+        placeBox.style.marginBottom = "4px";
+        placeBox.onclick = () => openPlaceModal(currentDayKey, index);
+        tdPlace.appendChild(placeBox);
+
+        const mapDiv = document.createElement("div");
+        const mapLink = document.createElement("a");
+        mapLink.className = "map-link";
+        mapLink.textContent = "開啟地圖";
+
+        mapLink.onclick = (e) => {
+          e.preventDefault();
+          const q = item.mapQuery || item.place || "";
+          if (!q) return;
+          updateMapPreview(q);
+          window.open(googleMapsUrl(q), "_blank");
+        };
+
+        const updateBtn = document.createElement("button");
+        updateBtn.textContent = "更新連結";
+        updateBtn.style.marginLeft = "4px";
+        updateBtn.style.padding = "2px 8px";
+        updateBtn.style.fontSize = "11px";
+        updateBtn.onclick = () => {
+          // 直接用現在的 place 當 mapQuery
+          item.mapQuery = item.place || item.mapQuery;
+          saveItinerary();
+          if (item.mapQuery) {
+            updateMapPreview(item.mapQuery);
+            alert("已根據地點更新地圖連結與預覽。");
+          }
+        };
+
+        mapDiv.appendChild(mapLink);
+        mapDiv.appendChild(updateBtn);
+        tdPlace.appendChild(mapDiv);
+        tr.appendChild(tdPlace);
+
+        // 備註：只讀小框框，點擊開大彈窗
+        const tdNote = document.createElement("td");
+        const textarea = document.createElement("textarea");
+        textarea.rows = 2;
+        textarea.readOnly = true;
+        textarea.value = item.note || "";
+        textarea.title = "點一下用大視窗編輯備註";
+        textarea.onclick = () => openNoteModal(currentDayKey, index);
+        tdNote.appendChild(textarea);
+        tr.appendChild(tdNote);
+
+        // 操作
+        const tdActions = document.createElement("td");
+        const delBtn = document.createElement("button");
+        delBtn.className = "danger";
+        delBtn.textContent = "刪除";
+        delBtn.onclick = () => {
+          if (confirm(`確定要刪除這筆行程嗎？\n\n${item.time} ${item.title}`)) {
+            day.items.splice(index, 1);
+            saveItinerary();
+            renderSchedule();
+          }
+        };
+        tdActions.appendChild(delBtn);
+        tr.appendChild(tdActions);
+
+        scheduleBodyEl.appendChild(tr);
+      });
+
+      if (day.items.length > 0) {
+        const first = day.items[0];
+        const q = first.mapQuery || first.place || "沖繩";
+        updateMapPreview(q);
+      } else {
+        updateMapPreview("沖繩");
+      }
+    }
+
+    document.getElementById("addItemBtn").onclick = () => {
+      const day = itinerary[currentDayKey];
+      day.items.push({
+        time: "",
+        title: "新行程",
+        place: "",
+        mapQuery: "",
+        note: ""
+      });
+      saveItinerary();
+      renderSchedule();
+    };
+
+    document.getElementById("resetBtn").onclick = () => {
+      if (confirm("確定要重置為預設行程嗎？\n目前所有修改都會被覆蓋。")) {
+        itinerary = JSON.parse(JSON.stringify(defaultItinerary));
+        currentDayKey = Object.keys(itinerary)[0];
+        saveItinerary();
+        renderDayList();
+        renderSchedule();
+      }
+    };
+
+    // === 分享 / 載入行程碼（壓縮版） ===
+    function generateShareCode() {
+      const json = JSON.stringify(itinerary);
+      const compressed = LZString.compressToBase64(json);
+      return compressed;
+    }
+
+    function decodeShareCode(code) {
+      try {
+        const json = LZString.decompressFromBase64(code.trim());
+        if (!json) return null;
+        return JSON.parse(json);
+      } catch {
+        return null;
+      }
+    }
+
+    const shareOverlay = document.getElementById("shareModalOverlay");
+    const shareArea = document.getElementById("shareCodeArea");
+    const shareBtn = document.getElementById("shareBtn");
+    const copyShareCodeBtn = document.getElementById("copyShareCode");
+    const closeShareModalBtn = document.getElementById("closeShareModal");
+
+    function openShareModal() {
+      const code = generateShareCode();
+      shareArea.value = code;
+      shareOverlay.style.display = "block";
+    }
+
+    function closeShareModal() {
+      shareOverlay.style.display = "none";
+    }
+
+    shareBtn.onclick = openShareModal;
+    closeShareModalBtn.onclick = closeShareModal;
+    shareOverlay.onclick = (e) => {
+      if (e.target === shareOverlay) closeShareModal();
+    };
+
+    copyShareCodeBtn.onclick = () => {
+      shareArea.select();
+      document.execCommand("copy");
+      alert("已複製行程碼，可以貼給家人囉！");
+    };
+
+    // 載入家人行程碼
+    const importOverlay = document.getElementById("importModalOverlay");
+    const importBtn = document.getElementById("importBtn");
+    const importCodeArea = document.getElementById("importCodeArea");
+    const applyImportCodeBtn = document.getElementById("applyImportCode");
+    const closeImportModalBtn = document.getElementById("closeImportModal");
+
+    function openImportModal() {
+      importCodeArea.value = "";
+      importOverlay.style.display = "block";
+      setTimeout(() => importCodeArea.focus(), 0);
+    }
+
+    function closeImportModal() {
+      importOverlay.style.display = "none";
+    }
+
+    importBtn.onclick = openImportModal;
+    closeImportModalBtn.onclick = closeImportModal;
+    importOverlay.onclick = (e) => {
+      if (e.target === importOverlay) closeImportModal();
+    };
+
+    applyImportCodeBtn.onclick = () => {
+      const code = importCodeArea.value.trim();
+      if (!code) {
+        alert("請先貼上行程碼");
+        return;
+      }
+      const data = decodeShareCode(code);
+      if (!data || typeof data !== "object") {
+        alert("行程碼無法解析，請確認是否貼錯或被截斷。");
+        return;
+      }
+      if (!confirm("確定要載入這份行程嗎？目前的修改會被覆蓋。")) return;
+
+      itinerary = data;
+      currentDayKey = Object.keys(itinerary)[0];
+      saveItinerary();
+      renderDayList();
+      renderSchedule();
+      closeImportModal();
+      alert("已成功載入家人的行程！");
+    };
+
+    // === 備註大彈窗 ===
+    const noteOverlay = document.getElementById("noteModalOverlay");
+    const noteTextarea = document.getElementById("noteModalTextarea");
+    const saveNoteBtn = document.getElementById("saveNoteBtn");
+    const cancelNoteBtn = document.getElementById("cancelNoteBtn");
+
+    function openNoteModal(dayKey, index) {
+      editingNoteInfo = { dayKey, index };
+      const item = itinerary[dayKey].items[index];
+      noteTextarea.value = item.note || "";
+      noteOverlay.style.display = "block";
+      setTimeout(() => noteTextarea.focus(), 0);
+    }
+
+    function closeNoteModal() {
+      editingNoteInfo = null;
+      noteOverlay.style.display = "none";
+    }
+
+    saveNoteBtn.onclick = () => {
+      if (!editingNoteInfo) return;
+      const { dayKey, index } = editingNoteInfo;
+      itinerary[dayKey].items[index].note = noteTextarea.value;
+      saveItinerary();
+      renderSchedule();
+      closeNoteModal();
+    };
+
+    cancelNoteBtn.onclick = closeNoteModal;
+    noteOverlay.onclick = (e) => {
+      if (e.target === noteOverlay) closeNoteModal();
+    };
+
+    // === 標題 & 地點大彈窗 ===
+    const titleOverlay = document.getElementById("titleModalOverlay");
+    const titleTextarea = document.getElementById("titleModalTextarea");
+    const saveTitleBtn = document.getElementById("saveTitleBtn");
+    const cancelTitleBtn = document.getElementById("cancelTitleBtn");
+
+    const placeOverlay = document.getElementById("placeModalOverlay");
+    const placeTextarea = document.getElementById("placeModalTextarea");
+    const savePlaceBtn = document.getElementById("savePlaceBtn");
+    const cancelPlaceBtn = document.getElementById("cancelPlaceBtn");
+
+    function openTitleModal(dayKey, index) {
+      editingTitleInfo = { dayKey, index };
+      const item = itinerary[dayKey].items[index];
+      titleTextarea.value = item.title || "";
+      titleOverlay.style.display = "block";
+      setTimeout(() => titleTextarea.focus(), 0);
+    }
+
+    function closeTitleModal() {
+      editingTitleInfo = null;
+      titleOverlay.style.display = "none";
+    }
+
+    function openPlaceModal(dayKey, index) {
+      editingPlaceInfo = { dayKey, index };
+      const item = itinerary[dayKey].items[index];
+      placeTextarea.value = item.place || "";
+      placeOverlay.style.display = "block";
+      setTimeout(() => placeTextarea.focus(), 0);
+    }
+
+    function closePlaceModal() {
+      editingPlaceInfo = null;
+      placeOverlay.style.display = "none";
+    }
+
+    saveTitleBtn.onclick = () => {
+      if (!editingTitleInfo) return;
+      const { dayKey, index } = editingTitleInfo;
+      itinerary[dayKey].items[index].title = titleTextarea.value;
+      saveItinerary();
+      renderSchedule();
+      closeTitleModal();
+    };
+
+    savePlaceBtn.onclick = () => {
+      if (!editingPlaceInfo) return;
+      const { dayKey, index } = editingPlaceInfo;
+      const text = placeTextarea.value;
+      itinerary[dayKey].items[index].place = text;
+      itinerary[dayKey].items[index].mapQuery = text;
+      saveItinerary();
+      renderSchedule();
+      closePlaceModal();
+    };
+
+    cancelTitleBtn.onclick = closeTitleModal;
+    cancelPlaceBtn.onclick = closePlaceModal;
+
+    titleOverlay.onclick = (e) => {
+      if (e.target === titleOverlay) closeTitleModal();
+    };
+
+    placeOverlay.onclick = (e) => {
+      if (e.target === placeOverlay) closePlaceModal();
+    };
+
+    // 初始渲染 + 立刻存一次（把舊格式覆蓋成新格式）
+    renderDayList();
+    renderSchedule();
+    saveItinerary();
+
+    // Service Worker（PWA）
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker
+          .register("sw.js")
+          .catch((err) => console.log("SW registration failed", err));
+      });
+    }
+  </script>
+</body>
+</html>
